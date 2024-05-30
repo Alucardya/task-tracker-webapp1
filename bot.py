@@ -7,7 +7,7 @@ TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
 # Обработка команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("Добавить задачу", web_app=WebAppInfo(url="https://my54unque-task-tracker-webapp.herokuapp.com"))],
+        [InlineKeyboardButton("Добавить задачу", web_app=WebAppInfo(url="https://my-unique-task-tracker-webapp-3bea140f1e44.herokuapp.com/"))],
         [InlineKeyboardButton("Показать задачи", callback_data='show_tasks')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
