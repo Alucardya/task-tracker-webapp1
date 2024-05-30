@@ -1,3 +1,4 @@
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 import sqlite3
@@ -12,7 +13,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Ваш токен бота
-TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 # Ініціалізація бази даних
 def init_db():
@@ -98,7 +99,16 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
 
     logger.info("Запуск бота")
-    application.run_polling()
+
+    # Налаштування вебхука
+    PORT = int(os.environ.get('PORT', '8443'))
+    HEROKU_APP_NAME = os.environ.get('HEROKU_APP_NAME')
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=TOKEN,
+        webhook_url=f"https://{HEROKU_APP_NAME}.herokuapp.com/{TOKEN}"
+    )
 
 if __name__ == '__main__':
     main()
