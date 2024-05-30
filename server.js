@@ -29,6 +29,7 @@ const initDb = () => {
 
 // Запуск бота
 const startBot = () => {
+    console.log('Запуск бота...');
     exec('python bot.py', (err, stdout, stderr) => {
         if (err) {
             console.error(`Ошибка при запуске бота: ${err}`);
