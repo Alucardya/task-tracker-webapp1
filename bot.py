@@ -81,7 +81,7 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     logger.info(f"Получены данные из мини-приложения: {data}")
 
     task = data.get('task')
-       data = json.loads(update.message.web_app_data.data)
+    data = json.loads(update.message.web_app_data.data)
     logger.info(f"Получены данные из мини-приложения: {data}")
 
     task = data.get('task')
@@ -105,4 +105,18 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+    import telebot
+from telebot import types
+
+# Telegram bot token
+TOKEN = "6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg"
+bot = telebot.TeleBot(TOKEN)
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Welcome to Task Tracker Bot!")
+
+if __name__ == "__main__":
+    bot.polling(none_stop=True)
+
 
