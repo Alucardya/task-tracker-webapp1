@@ -38,6 +38,7 @@ def add_task(user_id, task, category, priority, notes=''):
                    (user_id, task, category, priority, notes))
     conn.commit()
     conn.close()
+    logger.info(f'Задача "{task}" додана користувачем {user_id}')
 
 # Получение задач пользователя
 def get_tasks(user_id):
@@ -50,7 +51,7 @@ def get_tasks(user_id):
 
 # Обработка команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.info("Команда /start получена")
+    logger.info("Команда /start отримана")
     keyboard = [
         [InlineKeyboardButton("Додати задачу", web_app=WebAppInfo(url="https://my-unique-task-tracker-webapp-3bea140f1e44.herokuapp.com/"))],
         [InlineKeyboardButton("Показати задачі", callback_data='show_tasks')],
@@ -63,7 +64,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     data = query.data
     user_id = query.from_user.id
-    logger.info(f"Нажата кнопка с данными: {data}")
+    logger.info(f"Натиснута кнопка з даними: {data}")
 
     if data == 'show_tasks':
         tasks = get_tasks(user_id)
@@ -78,11 +79,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.message.from_user
     data = json.loads(update.message.web_app_data.data)
-    logger.info(f"Получены данные из мини-приложения: {data}")
-
-    task = data.get('task')
-    data = json.loads(update.message.web_app_data.data)
-    logger.info(f"Получены данные из мини-приложения: {data}")
+    logger.info(f"Отримані дані з міні-програми: {data}")
 
     task = data.get('task')
     category = data.get('category', 'Без категорії')
@@ -105,18 +102,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-    import telebot
-from telebot import types
-
-# Telegram bot token
-TOKEN = "6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg"
-bot = telebot.TeleBot(TOKEN)
-
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Welcome to Task Tracker Bot!")
-
-if __name__ == "__main__":
-    bot.polling(none_stop=True)
-
-
