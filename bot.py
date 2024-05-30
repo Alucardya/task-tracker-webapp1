@@ -4,9 +4,9 @@ import sqlite3
 import json
 import logging
 
-# Логирование
+# Логування
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelне)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Ваш токен бота
 TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
 
-# Инициализация базы данных
+# Ініціалізація бази даних
 def init_db():
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
@@ -30,7 +30,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Добавление задачи в базу данных
+# Додавання задачі до бази даних
 def add_task(user_id, task, category, priority, notes=''):
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
@@ -40,7 +40,7 @@ def add_task(user_id, task, category, priority, notes=''):
     conn.close()
     logger.info(f'Задача "{task}" додана користувачем {user_id}')
 
-# Получение задач пользователя
+# Отримання задач користувача
 def get_tasks(user_id):
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
@@ -49,7 +49,7 @@ def get_tasks(user_id):
     conn.close()
     return tasks
 
-# Обработка команды /start
+# Обробка команди /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Команда /start отримана")
     keyboard = [
@@ -59,7 +59,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Привіт! Я бот для управління Task Tracker. Виберіть опцію:', reply_markup=reply_markup)
 
-# Обработка нажатий на кнопки
+# Обробка натискань на кнопки
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     data = query.data
@@ -73,9 +73,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         else:
             response = 'У вас немає задач.'
         await query.message.reply_text(response)
-    query.answer()
+    await query.answer()
 
-# Обработка данных из мини-приложения
+# Обробка даних з міні-програми
 async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.message.from_user
     data = json.loads(update.message.web_app_data.data)
