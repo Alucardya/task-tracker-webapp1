@@ -1,73 +1,104 @@
-import telebot
-from telebot import types
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 import sqlite3
-import os
+import json
+import logging
 
-# Telegram bot token
-TOKEN = "6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg"
-bot = telebot.TeleBot(TTOKEN)
-
-# Database setup
-conn = sqlite3.connect('task_tracker.db', check_same_thread=False)
-cursor = conn.cursor()
-
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    task TEXT NOT NULL
+# Логирование
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelне)s - %(message)s',
+    level=logging.INFO
 )
-''')
-conn.commit()
+logger = logging.getLogger(__name__)
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Welcome to Task Tracker Bot! Use /help to see available commands.")
+# Ваш токен бота
+TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
 
-@bot.message_handler(commands=['help'])
-def send_help(message):
-    help_text = (
-        "/start - Start the bot\n"
-        "/help - Get help on how to use the bot\n"
-        "/addtask - Add a new task\n"
-        "/showtasks - Show all tasks\n"
-        "/deletetask - Delete a task by ID"
-    )
-    bot.reply_to(message, help_text)
-
-@bot.message_handler(commands=['addtask'])
-def add_task(message):
-    msg = bot.reply_to(message, "Please send me the task description.")
-    bot.register_next_step_handler(msg, save_task)
-
-def save_task(message):
-    user_id = message.from_user.id
-    task = message.text
-    cursor.execute('INSERT INTO tasks (user_id, task) VALUES (?, ?)', (user_id, task))
+# Инициализация базы данных
+def init_db():
+    conn = sqlite3.connect('task_tracker.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER,
+        task TEXT,
+        category TEXT,
+        priority TEXT,
+        notes TEXT
+    )''')
     conn.commit()
-    bot.reply_to(message, "Task added successfully!")
+    conn.close()
 
-@bot.message_handler(commands=['showtasks'])
-def show_tasks(message):
-    user_id = message.from_user.id
-    cursor.execute('SELECT id, task FROM tasks WHERE user_id = ?', (user_id,))
+# Добавление задачи в базу данных
+def add_task(user_id, task, category, priority, notes=''):
+    conn = sqlite3.connect('task_tracker.db')
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO tasks (user_id, task, category, priority, notes) VALUES (?, ?, ?, ?, ?)',
+                   (user_id, task, category, priority, notes))
+    conn.commit()
+    conn.close()
+    logger.info(f'Задача "{task}" додана користувачем {user_id}')
+
+# Получение задач пользователя
+def get_tasks(user_id):
+    conn = sqlite3.connect('task_tracker.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT task, category, priority, notes FROM tasks WHERE user_id = ?', (user_id,))
     tasks = cursor.fetchall()
-    if tasks:
-        response = "\n".join([f"{task[0]}. {task[1]}" for task in tasks])
-    else:
-        response = "You have no tasks."
-    bot.reply_to(message, response)
+    conn.close()
+    return tasks
 
-@bot.message_handler(commands=['deletetask'])
-def delete_task(message):
-    msg = bot.reply_to(message, "Please send me the ID of the task you want to delete.")
-    bot.register_next_step_handler(msg, remove_task)
+# Обработка команды /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info("Команда /start отримана")
+    keyboard = [
+        [InlineKeyboardButton("Додати задачу", web_app=WebAppInfo(url="https://my-unique-task-tracker-webapp-3bea140f1e44.herokuapp.com/"))],
+        [InlineKeyboardButton("Показати задачі", callback_data='show_tasks')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text('Привіт! Я бот для управління Task Tracker. Виберіть опцію:', reply_markup=reply_markup)
 
-def remove_task(message):
-    task_id = message.text
-    cursor.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
-    conn.commit()
-    bot.reply_to(message, "Task deleted successfully!")
+# Обработка нажатий на кнопки
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    data = query.data
+    user_id = query.from_user.id
+    logger.info(f"Натиснута кнопка з даними: {data}")
 
-if __name__ == "__main__":
-    bot.polling(none_stop=True)
+    if data == 'show_tasks':
+        tasks = get_tasks(user_id)
+        if tasks:
+            response = 'Ваші задачі:\n' + '\n'.join([f'{task} [{category}] - пріоритет: {priority}, нотатки: {notes}' for task, category, priority, notes in tasks])
+        else:
+            response = 'У вас немає задач.'
+        await query.message.reply_text(response)
+    query.answer()
+
+# Обработка данных из мини-приложения
+async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.message.from_user
+    data = json.loads(update.message.web_app_data.data)
+    logger.info(f"Отримані дані з міні-програми: {data}")
+
+    task = data.get('task')
+    category = data.get('category', 'Без категорії')
+    priority = data.get('priority', 'Середній')
+    notes = data.get('notes', '')
+
+    add_task(user.id, task, category, priority, notes)
+    await update.message.reply_text(f'Задача "{task}" додана!')
+
+def main() -> None:
+    init_db()
+    application = ApplicationBuilder().token(TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button))
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
+
+    logger.info("Запуск бота")
+    application.run_polling()
+
+if __name__ == '__main__':
+    main()
