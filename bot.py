@@ -1,9 +1,9 @@
-import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 import sqlite3
 import json
 import logging
+import os
 
 # Логування
 logging.basicConfig(
@@ -13,7 +13,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Ваш токен бота
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
+
+# Назва вашого Heroku додатка
+HEROKU_APP_NAME = 'my-unique-task-tracker-webapp-3bea140f1e44'
 
 # Ініціалізація бази даних
 def init_db():
@@ -54,7 +57,7 @@ def get_tasks(user_id):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.info("Команда /start отримана")
     keyboard = [
-        [InlineKeyboardButton("Додати задачу", web_app=WebAppInfo(url="https://my-unique-task-tracker-webapp-3bea140f1e44.herokuapp.com/"))],
+        [InlineKeyboardButton("Додати задачу", web_app=WebAppInfo(url=f"https://{HEROKU_APP_NAME}.herokuapp.com/"))],
         [InlineKeyboardButton("Показати задачі", callback_data='show_tasks')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -102,7 +105,6 @@ def main() -> None:
 
     # Налаштування вебхука
     PORT = int(os.environ.get('PORT', '8443'))
-    HEROKU_APP_NAME = os.environ.get('HEROKU_APP_NAME')
     application.run_webhook(
         listen="0.0.0.0",
         port=PORT,

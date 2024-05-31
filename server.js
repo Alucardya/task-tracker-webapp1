@@ -5,7 +5,7 @@ const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
 const { exec } = require('child_process');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8443;
 
 // Middleware для парсинга тела запроса
 app.use(bodyParser.json());
