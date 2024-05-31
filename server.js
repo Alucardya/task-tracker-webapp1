@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
 const { exec } = require('child_process');
+const path = require('path');
 const app = express();
 const port = process.env.PORT || 8443;
 
@@ -11,7 +12,7 @@ const port = process.env.PORT || 8443;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Инициализация базы данных
+// Ініціалізація бази даних
 const initDb = () => {
     const db = new sqlite3.Database('task_tracker.db');
     db.run(`
@@ -42,24 +43,7 @@ const startBot = () => {
     });
 };
 
-// Главная страница
-app.get('/', (req, res) => {
-    res.send(`
-        <h1>Task Tracker Web App</h1>
-        <form action="/add-task" method="post">
-            <input type="text" name="task" placeholder="Введіть задачу" required>
-            <input type="text" name="category" placeholder="Введіть категорію">
-            <input type="text" name="priority" placeholder="Введіть пріоритет">
-            <textarea name="notes" placeholder="Введіть нотатки"></textarea>
-            <button type="submit">Додати задачу</button>
-        </form>
-        <form action="/show-tasks" method="get">
-            <button type="submit">Показати задачі</button>
-        </form>
-    `);
-});
-
-// Обработка добавления задачи
+// Обробка додавання задачі
 app.post('/add-task', (req, res) => {
     const { task, category, priority, notes } = req.body;
     const user_id = process.env.CHAT_ID;
@@ -79,7 +63,7 @@ app.post('/add-task', (req, res) => {
     db.close();
 });
 
-// Обработка отображения задач
+// Обробка відображення задач
 app.get('/show-tasks', (req, res) => {
     const user_id = process.env.CHAT_ID;
 
@@ -88,13 +72,17 @@ app.get('/show-tasks', (req, res) => {
         if (err) {
             return console.log(err.message);
         }
-        let tasks = 'Ваші задачі:\n';
-        rows.forEach((row) => {
-            tasks += `${row.task} [${row.category}] - пріоритет: ${row.priority}, нотатки: ${row.notes}\n`;
-        });
-        res.send(tasks);
+        res.json(rows);
     });
     db.close();
+});
+
+// Вказуємо серверу обслуговувати статичні файли з папки build
+app.use(express.static(path.join(__dirname, 'task-tracker-react/build')));
+
+// Відправляємо всі запити на головну сторінку React додатка
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'task-tracker-react/build', 'index.html'));
 });
 
 app.listen(port, () => {
