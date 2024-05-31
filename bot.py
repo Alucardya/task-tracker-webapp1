@@ -5,20 +5,17 @@ import json
 import logging
 import os
 
-# Логування
+# Логирование
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levellevelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Ваш токен бота
-TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
+# Получение токена из переменных окружения
+TOKEN = os.getenv('TOKEN')
 
-# Назва вашого Heroku додатка
-HEROKU_APP_NAME = 'my-unique-task-tracker-webapp-3bea140f1e44'
-
-# Ініціалізація бази даних
+# Инициализация базы данных
 def init_db():
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
@@ -34,7 +31,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Додавання задачі до бази даних
+# Добавление задачи в базу данных
 def add_task(user_id, task, category, priority, notes=''):
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
@@ -42,9 +39,9 @@ def add_task(user_id, task, category, priority, notes=''):
                    (user_id, task, category, priority, notes))
     conn.commit()
     conn.close()
-    logger.info(f'Задача "{task}" додана користувачем {user_id}')
+    logger.info(f'Задача "{task}" добавлена пользователем {user_id}')
 
-# Отримання задач користувача
+# Получение задач пользователя
 def get_tasks(user_id):
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
@@ -53,45 +50,45 @@ def get_tasks(user_id):
     conn.close()
     return tasks
 
-# Обробка команди /start
+# Обработка команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.info("Команда /start отримана")
+    logger.info("Команда /start получена")
     keyboard = [
-        [InlineKeyboardButton("Додати задачу", web_app=WebAppInfo(url=f"https://{HEROKU_APP_NAME}.herokuapp.com/"))],
-        [InlineKeyboardButton("Показати задачі", callback_data='show_tasks')],
+        [InlineKeyboardButton("Добавить задачу", web_app=WebAppInfo(url="https://my-unique-task-tracker-webapp-3bea140f1e44.herokuapp.com/"))],
+        [InlineKeyboardButton("Показать задачи", callback_data='show_tasks')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text('Привіт! Я бот для управління Task Tracker. Виберіть опцію:', reply_markup=reply_markup)
+    await update.message.reply_text('Привет! Я бот для управления Task Tracker. Выберите опцию:', reply_markup=reply_markup)
 
-# Обробка натискань на кнопки
+# Обработка нажатий на кнопки
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     data = query.data
     user_id = query.from_user.id
-    logger.info(f"Натиснута кнопка з даними: {data}")
+    logger.info(f"Нажата кнопка с данными: {data}")
 
     if data == 'show_tasks':
         tasks = get_tasks(user_id)
         if tasks:
-            response = 'Ваші задачі:\n' + '\n'.join([f'{task} [{category}] - пріоритет: {priority}, нотатки: {notes}' for task, category, priority, notes in tasks])
+            response = 'Ваши задачи:\n' + '\n'.join([f'{task} [{category}] - приоритет: {priority}, заметки: {notes}' for task, category, priority, notes in tasks])
         else:
-            response = 'У вас немає задач.'
+            response = 'У вас нет задач.'
         await query.message.reply_text(response)
-    await query.answer()
+    query.answer()
 
-# Обробка даних з міні-програми
+# Обработка данных из мини-приложения
 async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.message.from_user
     data = json.loads(update.message.web_app_data.data)
-    logger.info(f"Отримані дані з міні-програми: {data}")
+    logger.info(f"Получены данные из мини-программы: {data}")
 
     task = data.get('task')
-    category = data.get('category', 'Без категорії')
-    priority = data.get('priority', 'Середній')
+    category = data.get('category', 'Без категории')
+    priority = data.get('priority', 'Средний')
     notes = data.get('notes', '')
 
     add_task(user.id, task, category, priority, notes)
-    await update.message.reply_text(f'Задача "{task}" додана!')
+    await update.message.reply_text(f'Задача "{task}" добавлена!')
 
 def main() -> None:
     init_db()
@@ -102,15 +99,7 @@ def main() -> None:
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
 
     logger.info("Запуск бота")
-
-    # Налаштування вебхука
-    PORT = int(os.environ.get('PORT', '8443'))
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=TOKEN,
-        webhook_url=f"https://{HEROKU_APP_NAME}.herokuapp.com/{TOKEN}"
-    )
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
