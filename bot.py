@@ -12,8 +12,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Получение токена из переменных окружения
-TOKEN = os.getenv('TOKEN')
+# Прямое указание токена
+TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
 
 # Инициализация базы данных
 def init_db():
