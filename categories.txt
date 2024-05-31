@@ -1,5 +1,0 @@
-maxima
-Розробка таск менеджера
-курс пайтон 1
-health
-crypto quest coding

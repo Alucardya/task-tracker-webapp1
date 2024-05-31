@@ -1,3 +1,4 @@
+from flask import Flask, send_from_directory, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 import sqlite3
@@ -7,7 +8,7 @@ import os
 
 # Логирование
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelень) - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -101,5 +102,40 @@ def main() -> None:
     logger.info("Запуск бота")
     application.run_polling()
 
-if __name__ == '__main__':
+# Flask сервер для обслуговування статичних файлів з React
+app = Flask(__name__, static_folder='client/build')
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/api/tasks', methods=['GET'])
+def api_get_tasks():
+    user_id = request.args.get('user_id', type=int)
+    tasks = get_tasks(user_id)
+    return json.dumps(tasks)
+
+@app.route('/api/tasks', methods=['POST'])
+def api_add_task():
+    data = request.json
+    user_id = data['user_id']
+    task = data['task']
+    category = data['category']
+    priority = data['priority']
+    notes = data.get('notes', '')
+    add_task(user_id, task, category, priority, notes)
+    return json.dumps({'success': True})
+
+if __name__ == "__main__":
+    # Инициализация базы данных
+    init_db()
+    
+    # Запуск Flask приложения
+    app.run(debug=True)
+    
+    # Запуск Telegram бота
     main()
