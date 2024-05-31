@@ -6,13 +6,13 @@ const sqlite3 = require('sqlite3').verbose();
 const { exec } = require('child_process');
 const path = require('path');
 const app = express();
-const port = process.env.PORT || 8443;
+const PORT = process.env.PORT || 3000;
 
-// Middleware для парсинга тела запроса
+// Middleware for parsing request body
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Ініціалізація бази даних
+// Initialize the database
 const initDb = () => {
     const db = new sqlite3.Database('task_tracker.db');
     db.run(`
@@ -28,42 +28,42 @@ const initDb = () => {
     db.close();
 };
 
-// Запуск бота
+// Start the bot
 const startBot = () => {
-    console.log('Запуск бота...');
+    console.log('Starting bot...');
     exec('python bot.py', (err, stdout, stderr) => {
         if (err) {
-            console.error(`Ошибка при запуске бота: ${err}`);
+            console.error(`Error starting bot: ${err}`);
             return;
         }
-        console.log(`Бот запущен: ${stdout}`);
+        console.log(`Bot started: ${stdout}`);
         if (stderr) {
-            console.error(`Ошибка бота: ${stderr}`);
+            console.error(`Bot error: ${stderr}`);
         }
     });
 };
 
-// Обробка додавання задачі
+// Handle task addition
 app.post('/add-task', (req, res) => {
     const { task, category, priority, notes } = req.body;
     const user_id = process.env.CHAT_ID;
 
     const db = new sqlite3.Database('task_tracker.db');
     db.run('INSERT INTO tasks (user_id, task, category, priority, notes) VALUES (?, ?, ?, ?, ?)',
-        [user_id, task, category || 'Без категорії', priority || 'Середній', notes || ''], (err) => {
+        [user_id, task, category || 'No Category', priority || 'Medium', notes || ''], (err) => {
             if (err) {
                 return console.log(err.message);
             }
             axios.post(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
                 chat_id: user_id,
-                text: `Нова задача додана: ${task}`
+                text: `New task added: ${task}`
             });
-            res.send('Задача додана успішно');
+            res.send('Task added successfully');
         });
     db.close();
 });
 
-// Обробка відображення задач
+// Handle task display
 app.get('/show-tasks', (req, res) => {
     const user_id = process.env.CHAT_ID;
 
@@ -77,16 +77,16 @@ app.get('/show-tasks', (req, res) => {
     db.close();
 });
 
-// Вказуємо серверу обслуговувати статичні файли з папки build
-app.use(express.static(path.join(__dirname, 'task-tracker-react/build')));
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../task-tracker-react/build')));
 
-// Відправляємо всі запити на головну сторінку React додатка
+// The "catchall" handler: for any request that doesn't match one above, send back index.html
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'task-tracker-react/build', 'index.html'));
+  res.sendFile(path.join(__dirname, '../task-tracker-react/build', 'index.html'));
 });
 
-app.listen(port, () => {
+app.listen(PORT, () => {
     initDb();
     startBot();
-    console.log(`Сервер працює на порту ${port}`);
+    console.log(`Server is running on port ${PORT}`);
 });
