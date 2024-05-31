@@ -5,10 +5,11 @@ import sqlite3
 import json
 import logging
 import os
+import threading
 
 # Логирование
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelень) - %(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     add_task(user.id, task, category, priority, notes)
     await update.message.reply_text(f'Задача "{task}" добавлена!')
 
-def main() -> None:
+def start_bot():
     init_db()
     application = ApplicationBuilder().token(TOKEN).build()
 
@@ -133,9 +134,9 @@ def api_add_task():
 if __name__ == "__main__":
     # Инициализация базы данных
     init_db()
-    
-    # Запуск Flask приложения
-    app.run(debug=True)
-    
+
+    # Запуск Flask приложения в отдельном потоке
+    threading.Thread(target=lambda: app.run(debug=True, use_reloader=False)).start()
+
     # Запуск Telegram бота
-    main()
+    start_bot()
