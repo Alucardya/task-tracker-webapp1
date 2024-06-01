@@ -1,0 +1,14 @@
+{
+    "name": "task-tracker-webapp",
+    "version": "1.0.0",
+    "scripts": {
+        "start": "npm run build --prefix task-tracker-client && npm install -g serve && serve -s task-tracker-client/build"
+    },
+    "dependencies": {
+        "axios": "^1.7.2",
+        "web-vitals": "^4.0.1"
+    },
+    "devDependencies": {
+        "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+    }
+}

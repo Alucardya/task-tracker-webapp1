@@ -1,4 +1,5 @@
-web: python bot.py
+web: serve -s build
+
 
 
 
