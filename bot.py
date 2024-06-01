@@ -4,7 +4,9 @@ from flask import Flask, request, jsonify
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 import logging
+import pytz
 
 # Логирование
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Настройка токена
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
 bot = Bot(token=TOKEN)
 
 # Функции для работы с базой данных SQLite
@@ -108,7 +110,7 @@ def run_bot():
 
 # Запуск APScheduler
 scheduler = BackgroundScheduler()
-scheduler.add_job(run_bot, 'interval', seconds=10)
+scheduler.add_job(run_bot, IntervalTrigger(seconds=10, timezone=pytz.utc))
 scheduler.start()
 
 # Запуск Flask
