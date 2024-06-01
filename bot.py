@@ -13,7 +13,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 app = Flask(__name__)
@@ -22,17 +22,17 @@ app = Flask(__name__)
 updater = Updater(TOKEN, use_context=True)
 dispatcher = updater.dispatcher
 
-def start(update: Update, context: CallbackContext) -> None:
+def start(update: Update, context) -> None:
     update.message.reply_text('Hi! Use /set <seconds> to set a timer')
 
-def help_command(update: Update, context: CallbackContext) -> None:
+def help_command(update: Update, context) -> None:
     update.message.reply_text('Help!')
 
-def alarm(context: CallbackContext) -> None:
+def alarm(context) -> None:
     job = context.job
     context.bot.send_message(job.context, text='Beep!')
 
-def set_timer(update: Update, context: CallbackContext) -> None:
+def set_timer(update: Update, context) -> None:
     chat_id = update.message.chat_id
     try:
         due = int(context.args[0])
@@ -47,7 +47,7 @@ def set_timer(update: Update, context: CallbackContext) -> None:
     except (IndexError, ValueError):
         update.message.reply_text('Usage: /set <seconds>')
 
-def button(update: Update, context: CallbackContext) -> None:
+def button(update: Update, context) -> None:
     query = update.callback_query
     query.answer()
     query.edit_message_text(text=f"Selected option: {query.data}")
