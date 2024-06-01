@@ -41,4 +41,19 @@ function TaskForm({ onTaskAdded }) {
             <MenuItem value="Низкий">Низкий</MenuItem>
           </Select>
         </FormControl>
-        <Text
+        <TextField
+          label="Notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          fullWidth
+          multiline
+          rows={4}
+          margin="normal"
+        />
+        <Button type="submit" variant="contained" color="primary">Add Task</Button>
+      </form>
+    </Container>
+  );
+}
+
+export default TaskForm;
