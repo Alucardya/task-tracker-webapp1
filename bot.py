@@ -1,129 +1,85 @@
-from flask import Flask, send_from_directory, request
+import os
+from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 from apscheduler.schedulers.background import BackgroundScheduler
-import os
-import json
-import sqlite3
 import logging
+import sqlite3
+import pytz
 
-# Создание экземпляра Flask
-app = Flask(__name__)
-
-# Настройка логирования
+# Enable logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Функции для работы с базой данных SQLite
-def init_db():
-    conn = sqlite3.connect('task_tracker.db')
-    cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS tasks
-                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                      title TEXT NOT NULL,
-                      description TEXT)''')
-    conn.commit()
-    conn.close()
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-def add_task(title, description):
-    conn = sqlite3.connect('task_tracker.db')
-    cursor = conn.cursor()
-    cursor.execute('INSERT INTO tasks (title, description) VALUES (?, ?)', (title, description))
-    conn.commit()
-    conn.close()
+app = Flask(__name__)
 
-def get_tasks():
-    conn = sqlite3.connect('task_tracker.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM tasks')
-    tasks = cursor.fetchall()
-    conn.close()
-    return tasks
+# Initialize updater and dispatcher
+updater = Updater(TOKEN, use_context=True)
+dispatcher = updater.dispatcher
 
-def delete_task(task_id):
-    conn = sqlite3.connect('task_tracker.db')
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
-    conn.commit()
-    conn.close()
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Hi! Use /set <seconds> to set a timer')
 
-# Telegram бот функции
-def start(update: Update, context):
-    update.message.reply_text("Welcome to Task Tracker Bot!")
+def help_command(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('Help!')
 
-def add_task_command(update: Update, context):
-    args = context.args
-    if len(args) == 0:
-        update.message.reply_text("Please provide the task title.")
-    else:
-        title = ' '.join(args)
-        add_task(title, "")
-        update.message.reply_text(f'Task "{title}" added!')
+def alarm(context: CallbackContext) -> None:
+    job = context.job
+    context.bot.send_message(job.context, text='Beep!')
 
-def list_tasks_command(update: Update, context):
-    tasks = get_tasks()
-    if len(tasks) == 0:
-        update.message.reply_text("No tasks found.")
-    else:
-        message = "\n".join([f'{task[0]}: {task[1]}' for task in tasks])
-        update.message.reply_text(message)
+def set_timer(update: Update, context: CallbackContext) -> None:
+    chat_id = update.message.chat_id
+    try:
+        due = int(context.args[0])
+        if due < 0:
+            update.message.reply_text('Sorry, we can not go back to future!')
+            return
 
-def delete_task_command(update: Update, context):
-    args = context.args
-    if len(args) == 0:
-        update.message.reply_text("Please provide the task ID to delete.")
-    else:
-        task_id = int(args[0])
-        delete_task(task_id)
-        update.message.reply_text(f'Task {task_id} deleted!')
+        context.job_queue.run_once(alarm, due, context=chat_id, name=str(chat_id))
 
-# Запуск Telegram бота
-def run_bot():
-    updater = Updater(token=os.environ['TELEGRAM_TOKEN'], use_context=True)
+        update.message.reply_text(f'Timer successfully set for {due} seconds!')
+
+    except (IndexError, ValueError):
+        update.message.reply_text('Usage: /set <seconds>')
+
+def button(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    query.answer()
+    query.edit_message_text(text=f"Selected option: {query.data}")
+
+def main() -> None:
+    # Create the Updater and pass it your bot's token.
+    updater = Updater(TOKEN)
+
     dispatcher = updater.dispatcher
 
     dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("add", add_task_command))
-    dispatcher.add_handler(CommandHandler("list", list_tasks_command))
-    dispatcher.add_handler(CommandHandler("delete", delete_task_command))
+    dispatcher.add_handler(CommandHandler("help", help_command))
+    dispatcher.add_handler(CommandHandler("set", set_timer))
+    dispatcher.add_handler(CallbackQueryHandler(button))
 
     updater.start_polling()
     updater.idle()
 
-# Flask маршруты
+@app.route('/' + TOKEN, methods=['POST'])
+def webhook():
+    update = Update.de_json(request.get_json(force=True), updater.bot)
+    updater.dispatcher.process_update(update)
+    return 'ok'
+
 @app.route('/')
 def index():
-    return "Welcome to Task Tracker!"
+    return 'Hello, I am your bot!'
 
-@app.route('/tasks', methods=['GET'])
-def list_tasks():
-    tasks = get_tasks()
-    return json.dumps(tasks)
-
-@app.route('/add_task', methods=['POST'])
-def add_task_route():
-    data = request.json
-    title = data.get('title')
-    description = data.get('description', '')
-    add_task(title, description)
-    return 'Task added successfully!'
-
-@app.route('/delete_task/<int:task_id>', methods=['DELETE'])
-def delete_task_route(task_id):
-    delete_task(task_id)
-    return 'Task deleted successfully!'
-
-# Инициализация базы данных
-init_db()
-
-# Запуск бота в фоновом режиме
-scheduler = BackgroundScheduler()
-scheduler.add_job(run_bot, 'interval', seconds=10)
-scheduler.start()
-
-# Запуск Flask приложения
-if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+if __name__ == '__main__':
+    PORT = int(os.environ.get('PORT', '8443'))
+    updater.start_webhook(listen="0.0.0.0",
+                          port=PORT,
+                          url_path=TOKEN,
+                          webhook_url=f"https://{os.environ.get('HEROKU_APP_NAME')}.herokuapp.com/{TOKEN}")
+    updater.idle()
