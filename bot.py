@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Настройка токена
-TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = Bot(token=TOKEN)
 
 # Функции для работы с базой данных SQLite
@@ -118,4 +118,4 @@ def index():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
