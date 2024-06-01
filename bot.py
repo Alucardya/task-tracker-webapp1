@@ -1,142 +1,128 @@
 from flask import Flask, send_from_directory, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
-import sqlite3
-import json
-import logging
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from apscheduler.schedulers.background import BackgroundScheduler
 import os
-import threading
+import json
+import sqlite3
+import logging
+from werkzeug.urls import unquote
 
-# Логирование
+# Создание экземпляра Flask
+app = Flask(__name__)
+
+# Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Прямое указание токена
-TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
-
-# Инициализация базы данных
+# Функции для работы с базой данных SQLite
 def init_db():
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS tasks (
-        id INTEGER PRIMARY KEY,
-        user_id INTEGER,
-        task TEXT,
-        category TEXT,
-        priority TEXT,
-        notes TEXT
-    )''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS tasks
+                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      title TEXT NOT NULL,
+                      description TEXT)''')
     conn.commit()
     conn.close()
 
-# Добавление задачи в базу данных
-def add_task(user_id, task, category, priority, notes=''):
+def add_task(title, description):
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO tasks (user_id, task, category, priority, notes) VALUES (?, ?, ?, ?, ?)',
-                   (user_id, task, category, priority, notes))
+    cursor.execute('INSERT INTO tasks (title, description) VALUES (?, ?)', (title, description))
     conn.commit()
     conn.close()
-    logger.info(f'Задача "{task}" добавлена пользователем {user_id}')
 
-# Получение задач пользователя
-def get_tasks(user_id):
+def get_tasks():
     conn = sqlite3.connect('task_tracker.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT task, category, priority, notes FROM tasks WHERE user_id = ?', (user_id,))
+    cursor.execute('SELECT * FROM tasks')
     tasks = cursor.fetchall()
     conn.close()
     return tasks
 
-# Обработка команды /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.info("Команда /start получена")
-    keyboard = [
-        [InlineKeyboardButton("Добавить задачу", web_app=WebAppInfo(url="https://my-unique-task-tracker-webapp-3bea140f1e44.herokuapp.com/"))],
-        [InlineKeyboardButton("Показать задачи", callback_data='show_tasks')],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text('Привет! Я бот для управления Task Tracker. Выберите опцию:', reply_markup=reply_markup)
+def delete_task(task_id):
+    conn = sqlite3.connect('task_tracker.db')
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
+    conn.commit()
+    conn.close()
 
-# Обработка нажатий на кнопки
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    data = query.data
-    user_id = query.from_user.id
-    logger.info(f"Нажата кнопка с данными: {data}")
+# Telegram бот функции
+async def start(update: Update, context):
+    await update.message.reply_text("Welcome to Task Tracker Bot!")
 
-    if data == 'show_tasks':
-        tasks = get_tasks(user_id)
-        if tasks:
-            response = 'Ваши задачи:\n' + '\n'.join([f'{task} [{category}] - приоритет: {priority}, заметки: {notes}' for task, category, priority, notes in tasks])
-        else:
-            response = 'У вас нет задач.'
-        await query.message.reply_text(response)
-    query.answer()
+async def add_task_command(update: Update, context):
+    args = context.args
+    if len(args) == 0:
+        await update.message.reply_text("Please provide the task title.")
+    else:
+        title = ' '.join(args)
+        add_task(title, "")
+        await update.message.reply_text(f'Task "{title}" added!')
 
-# Обработка данных из мини-приложения
-async def web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.message.from_user
-    data = json.loads(update.message.web_app_data.data)
-    logger.info(f"Получены данные из мини-программы: {data}")
+async def list_tasks_command(update: Update, context):
+    tasks = get_tasks()
+    if len(tasks) == 0:
+        await update.message.reply_text("No tasks found.")
+    else:
+        message = "\n".join([f'{task[0]}: {task[1]}' for task in tasks])
+        await update.message.reply_text(message)
 
-    task = data.get('task')
-    category = data.get('category', 'Без категории')
-    priority = data.get('priority', 'Средний')
-    notes = data.get('notes', '')
+async def delete_task_command(update: Update, context):
+    args = context.args
+    if len(args) == 0:
+        await update.message.reply_text("Please provide the task ID to delete.")
+    else:
+        task_id = int(args[0])
+        delete_task(task_id)
+        await update.message.reply_text(f'Task {task_id} deleted!')
 
-    add_task(user.id, task, category, priority, notes)
-    await update.message.reply_text(f'Задача "{task}" добавлена!')
-
-def start_bot():
-    init_db()
-    application = ApplicationBuilder().token(TOKEN).build()
+# Запуск Telegram бота
+def run_bot():
+    application = ApplicationBuilder().token(os.environ['TELEGRAM_TOKEN']).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button))
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data))
+    application.add_handler(CommandHandler("add", add_task_command))
+    application.add_handler(CommandHandler("list", list_tasks_command))
+    application.add_handler(CommandHandler("delete", delete_task_command))
 
-    logger.info("Запуск бота")
     application.run_polling()
 
-# Flask сервер для обслуговування статичних файлів з React
-app = Flask(__name__, static_folder='client/build')
+# Flask маршруты
+@app.route('/')
+def index():
+    return "Welcome to Task Tracker!"
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
-    if path != "" and os.path.exists(app.static_folder + '/' + path):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, 'index.html')
-
-@app.route('/api/tasks', methods=['GET'])
-def api_get_tasks():
-    user_id = request.args.get('user_id', type=int)
-    tasks = get_tasks(user_id)
+@app.route('/tasks', methods=['GET'])
+def list_tasks():
+    tasks = get_tasks()
     return json.dumps(tasks)
 
-@app.route('/api/tasks', methods=['POST'])
-def api_add_task():
+@app.route('/add_task', methods=['POST'])
+def add_task_route():
     data = request.json
-    user_id = data['user_id']
-    task = data['task']
-    category = data['category']
-    priority = data['priority']
-    notes = data.get('notes', '')
-    add_task(user_id, task, category, priority, notes)
-    return json.dumps({'success': True})
+    title = data.get('title')
+    description = data.get('description', '')
+    add_task(title, description)
+    return 'Task added successfully!'
 
+@app.route('/delete_task/<int:task_id>', methods=['DELETE'])
+def delete_task_route(task_id):
+    delete_task(task_id)
+    return 'Task deleted successfully!'
+
+# Инициализация базы данных
+init_db()
+
+# Запуск бота в фоновом режиме
+scheduler = BackgroundScheduler()
+scheduler.add_job(run_bot, 'interval', seconds=10)
+scheduler.start()
+
+# Запуск Flask приложения
 if __name__ == "__main__":
-    # Инициализация базы данных
-    init_db()
-
-    # Запуск Flask приложения в отдельном потоке
-    threading.Thread(target=lambda: app.run(debug=True, use_reloader=False)).start()
-
-    # Запуск Telegram бота
-    start_bot()
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
