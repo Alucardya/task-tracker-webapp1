@@ -1,6 +1,6 @@
 from flask import Flask, send_from_directory, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup  # Удалил WebAppInfo
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters
 from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import json
@@ -51,45 +51,47 @@ def delete_task(task_id):
     conn.close()
 
 # Telegram бот функции
-async def start(update: Update, context):
-    await update.message.reply_text("Welcome to Task Tracker Bot!")
+def start(update: Update, context):
+    update.message.reply_text("Welcome to Task Tracker Bot!")
 
-async def add_task_command(update: Update, context):
+def add_task_command(update: Update, context):
     args = context.args
     if len(args) == 0:
-        await update.message.reply_text("Please provide the task title.")
+        update.message.reply_text("Please provide the task title.")
     else:
         title = ' '.join(args)
         add_task(title, "")
-        await update.message.reply_text(f'Task "{title}" added!')
+        update.message.reply_text(f'Task "{title}" added!')
 
-async def list_tasks_command(update: Update, context):
+def list_tasks_command(update: Update, context):
     tasks = get_tasks()
     if len(tasks) == 0:
-        await update.message.reply_text("No tasks found.")
+        update.message.reply_text("No tasks found.")
     else:
         message = "\n".join([f'{task[0]}: {task[1]}' for task in tasks])
-        await update.message.reply_text(message)
+        update.message.reply_text(message)
 
-async def delete_task_command(update: Update, context):
+def delete_task_command(update: Update, context):
     args = context.args
     if len(args) == 0:
-        await update.message.reply_text("Please provide the task ID to delete.")
+        update.message.reply_text("Please provide the task ID to delete.")
     else:
         task_id = int(args[0])
         delete_task(task_id)
-        await update.message.reply_text(f'Task {task_id} deleted!')
+        update.message.reply_text(f'Task {task_id} deleted!')
 
 # Запуск Telegram бота
 def run_bot():
-    application = ApplicationBuilder().token(os.environ['TELEGRAM_TOKEN']).build()
+    updater = Updater(token=os.environ['TELEGRAM_TOKEN'], use_context=True)
+    dispatcher = updater.dispatcher
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("add", add_task_command))
-    application.add_handler(CommandHandler("list", list_tasks_command))
-    application.add_handler(CommandHandler("delete", delete_task_command))
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("add", add_task_command))
+    dispatcher.add_handler(CommandHandler("list", list_tasks_command))
+    dispatcher.add_handler(CommandHandler("delete", delete_task_command))
 
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
 # Flask маршруты
 @app.route('/')
