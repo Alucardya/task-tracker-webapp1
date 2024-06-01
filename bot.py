@@ -1,12 +1,11 @@
 from flask import Flask, send_from_directory, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup  # Удалил WebAppInfo
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import json
 import sqlite3
 import logging
-from werkzeug.urls import unquote
 
 # Создание экземпляра Flask
 app = Flask(__name__)
