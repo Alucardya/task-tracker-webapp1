@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, render_template
 from telegram import Update, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -117,14 +117,14 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(run_bot, IntervalTrigger(seconds=10, timezone=pytz.utc))
 scheduler.start()
 
-# Flask route
-@app.route('/')
-def index():
-    return send_from_directory(app.static_folder, 'index.html')
-
+# Flask routes to serve React app
+@app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
-def static_proxy(path):
-    return send_from_directory(app.static_folder, path)
+def serve(path):
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':
     init_db()
