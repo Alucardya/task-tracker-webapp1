@@ -13,7 +13,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # Flask application setup
-app = Flask(__name__, static_folder='task-tracker-client/build', static_url_path='')
+app = Flask(__name__, static_folder='task-tracker-client/build')
 
 # Retrieve the Telegram bot token from environment variables
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -117,7 +117,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(run_bot, IntervalTrigger(seconds=10, timezone=pytz.utc))
 scheduler.start()
 
-# Serve the React frontend
+# Flask route
 @app.route('/')
 def index():
     return send_from_directory(app.static_folder, 'index.html')
