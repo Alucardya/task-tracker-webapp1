@@ -1,31 +1,18 @@
 from flask import Blueprint, request, jsonify
-from server import db
-from server.models import Task
+from server.models import db, Task
 
-api_bp = Blueprint('api', __name__)
+task_blueprint = Blueprint('tasks', __name__)
 
-@api_bp.route('/tasks', methods=['GET'])
+@task_blueprint.route('/', methods=['GET'])
 def get_tasks():
     tasks = Task.query.all()
-    return jsonify([{
-        'id': task.id,
-        'title': task.title,
-        'description': task.description,
-        'done': task.done
-    } for task in tasks])
+    tasks_list = [{'id': task.id, 'title': task.title, 'description': task.description, 'completed': task.completed} for task in tasks]
+    return jsonify(tasks_list)
 
-@api_bp.route('/tasks', methods=['POST'])
+@task_blueprint.route('/', methods=['POST'])
 def add_task():
     data = request.get_json()
-    new_task = Task(
-        title=data.get('title'),
-        description=data.get('description')
-    )
+    new_task = Task(title=data['title'], description=data['description'])
     db.session.add(new_task)
     db.session.commit()
-    return jsonify({
-        'id': new_task.id,
-        'title': new_task.title,
-        'description': new_task.description,
-        'done': new_task.done
-    }), 201
+    return jsonify({'id': new_task.id, 'title': new_task.title, 'description': new_task.description, 'completed': new_task.completed})

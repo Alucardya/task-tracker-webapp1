@@ -1,11 +1,16 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
+from server.models import db
+from server.views import task_blueprint
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+def create_app():
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+    db.init_app(app)
+    app.register_blueprint(task_blueprint, url_prefix='/tasks')
+    CORS(app)
 
-db = SQLAlchemy(app)
+    with app.app_context():
+        db.create_all()
 
-from server import models
-db.create_all()
+    return app
