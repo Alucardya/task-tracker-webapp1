@@ -1,27 +1,27 @@
 import os
 import sqlite3
-from flask import Flask, request, jsonify
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from flask import Flask
+from telegram import Update, Bot
+from telegram.ext import Updater, CommandHandler, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import logging
 import pytz
 
-# Логирование
+# Logging configuration
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Настройка Flask
+# Flask application setup
 app = Flask(__name__)
 
-# Настройка токена
+# Retrieve the Telegram bot token from environment variables
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 if not TOKEN:
     raise ValueError('`TELEGRAM_BOT_TOKEN` must be set as an environment variable')
 bot = Bot(token=TOKEN)
 
-# Функции для работы с базой данных SQLite
+# SQLite database functions
 def init_db():
     db_path = os.path.join(os.getcwd(), 'task_tracker.db')
     conn = sqlite3.connect(db_path)
@@ -55,7 +55,7 @@ def delete_task(task_id):
     conn.commit()
     conn.close()
 
-# Обработчики команд
+# Telegram bot command handlers
 def start(update: Update, context: CallbackContext) -> None:
     user = update.message.from_user
     logger.info(f"User {user.first_name} started the conversation.")
@@ -98,28 +98,26 @@ def help_command(update: Update, context: CallbackContext) -> None:
         '/help - Show this help message'
     )
 
-# Функция для запуска бота
+# Function to run the Telegram bot
 def run_bot():
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
 
-    # Регистрация обработчиков команд
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("add", add))
     dp.add_handler(CommandHandler("view", view))
     dp.add_handler(CommandHandler("delete", delete))
     dp.add_handler(CommandHandler("help", help_command))
 
-    # Запуск бота
     updater.start_polling()
     updater.idle()
 
-# Запуск APScheduler
+# APScheduler setup
 scheduler = BackgroundScheduler()
 scheduler.add_job(run_bot, IntervalTrigger(seconds=10, timezone=pytz.utc))
 scheduler.start()
 
-# Запуск Flask
+# Flask route
 @app.route('/')
 def index():
     return "Hello, this is the Task Tracker bot!"
