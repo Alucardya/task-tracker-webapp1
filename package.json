@@ -11,6 +11,7 @@
     "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix task-tracker-client && npm run build --prefix task-tracker-client"
   },
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "web-vitals": "^4.0.1"
   }
 }
