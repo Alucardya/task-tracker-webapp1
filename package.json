@@ -1,14 +1,16 @@
 {
-    "name": "task-tracker-webapp",
-    "version": "1.0.0",
-    "main": "server.js",
-    "scripts": {
-      "start": "node server.js",
-      "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client"
-    },
-    "dependencies": {
-      "express": "^4.17.1",
-      "path": "^0.12.7"
-    }
+  "name": "task-tracker-webapp",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
+  "scripts": {
+    "start": "python bot.py",
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix task-tracker-client && npm run build --prefix task-tracker-client"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
   }
-  
+}

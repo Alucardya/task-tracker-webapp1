@@ -1,19 +1,14 @@
 import os
-import sqlite3
-from flask import Flask
+from flask import Flask, send_from_directory
 from telegram import Update, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import logging
+import sqlite3
 import pytz
 
-# Logging configuration
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Flask application setup
-app = Flask(__name__)
+app = Flask(__name__, static_folder='task-tracker-client/build', static_url_path='')
 
 # Retrieve the Telegram bot token from environment variables
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -117,10 +112,14 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(run_bot, IntervalTrigger(seconds=10, timezone=pytz.utc))
 scheduler.start()
 
-# Flask route
+# Serve the React frontend
 @app.route('/')
 def index():
-    return "Hello, this is the Task Tracker bot!"
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def static_proxy(path):
+    return send_from_directory(app.static_folder, path)
 
 if __name__ == '__main__':
     init_db()
