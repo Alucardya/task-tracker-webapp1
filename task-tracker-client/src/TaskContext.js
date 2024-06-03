@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchTasks } from './api';
+import { fetchTasks, addTask as addTaskApi } from './api';
 
 const TaskContext = createContext();
 
@@ -20,20 +20,17 @@ const TaskProvider = ({ children }) => {
     getTasks();
   }, []);
 
-  const addTask = (task) => {
-    setTasks([...tasks, task]);
-  };
-
-  const updateTaskContext = (updatedTask) => {
-    setTasks(tasks.map(task => (task.id === updatedTask.id ? updatedTask : task)));
-  };
-
-  const deleteTask = (taskId) => {
-    setTasks(tasks.filter(task => task.id !== taskId));
+  const addTask = async (task) => {
+    try {
+      const newTask = await addTaskApi(task);
+      setTasks([...tasks, newTask]);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
-    <TaskContext.Provider value={{ tasks, setTasks, addTask, updateTaskContext, deleteTask }}>
+    <TaskContext.Provider value={{ tasks, setTasks, addTask }}>
       {children}
     </TaskContext.Provider>
   );
