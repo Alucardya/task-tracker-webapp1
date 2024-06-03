@@ -1,26 +1,24 @@
 {
-  "name": "task-tracker-client",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "axios": "^1.7.2",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "react-scripts": "5.0.0",
-    "web-vitals": "^4.0.1"
-  },
+  "name": "task-tracker-webapp",
+  "version": "1.0.0",
+  "main": "index.js",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "run-bot": "python bot.py"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "dependencies": {
+    "@emotion/react": "^11.7.1",
+    "@emotion/styled": "^11.6.0",
+    "@mui/material": "^5.2.5",
+    "axios": "^0.24.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-scripts": "4.0.3"
   },
+  "devDependencies": {},
   "browserslist": {
     "production": [
       ">0.2%",

@@ -11,7 +11,12 @@
     "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix task-tracker-client && npm run build --prefix task-tracker-client"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@mui/material": "^5.15.19",
     "express": "^4.17.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "web-vitals": "^4.0.1"
   }
 }

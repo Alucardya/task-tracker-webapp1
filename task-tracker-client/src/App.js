@@ -1,69 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { fetchTasks, addTask as addTaskApi } from './api';
+import React, { useEffect } from 'react';
+import { Container } from '@mui/material';
+import { fetchTasks, addTask as addTaskApi, updateTask, deleteTask as deleteTaskApi } from './api';
+import TaskList from './components/TaskList';
+import TaskForm from './components/TaskForm';
+import { useTasks } from './TaskContext';
 
 function App() {
-    const [tasks, setTasks] = useState([]);
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
+  const { tasks, setTasks, addTask, updateTaskContext, deleteTask } = useTasks();
 
-    useEffect(() => {
-        const getTasks = async () => {
-            try {
-                const tasks = await fetchTasks();
-                setTasks(Array.isArray(tasks) ? tasks : []);
-            } catch (error) {
-                console.log(error);
-                setTasks([]);
-            }
-        };
-
-        getTasks();
-    }, []);
-
-    const addTask = async () => {
-        try {
-            const newTask = await addTaskApi({ title, description });
-            setTasks([...tasks, { ...newTask, completed: false }]);
-            setTitle('');
-            setDescription('');
-        } catch (error) {
-            console.log(error);
-        }
+  useEffect(() => {
+    const getTasks = async () => {
+      try {
+        const tasks = await fetchTasks();
+        setTasks(Array.isArray(tasks) ? tasks : []);
+      } catch (error) {
+        console.error(error);
+        setTasks([]);
+      }
     };
 
-    return (
-        <div>
-            <h1>Task Tracker</h1>
-            <div>
-                <label htmlFor="task-title">Title</label>
-                <input
-                    type="text"
-                    id="task-title"
-                    name="title"
-                    placeholder="Title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                />
-            </div>
-            <div>
-                <label htmlFor="task-description">Description</label>
-                <input
-                    type="text"
-                    id="task-description"
-                    name="description"
-                    placeholder="Description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                />
-            </div>
-            <button onClick={addTask}>Add Task</button>
-            <ul>
-                {tasks.map((task, index) => (
-                    <li key={index}>{task.title}: {task.description}</li>
-                ))}
-            </ul>
-        </div>
-    );
+    getTasks();
+  }, [setTasks]);
+
+  const handleAddTask = async (task) => {
+    try {
+      const newTask = await addTaskApi(task);
+      addTask({ ...newTask, completed: false });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleComplete = async (taskId) => {
+    try {
+      const updatedTask = await updateTask(taskId, {
+        completed: !tasks.find((task) => task.id === taskId).completed,
+      });
+      updateTaskContext(updatedTask);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDelete = async (taskId) => {
+    try {
+      await deleteTaskApi(taskId);
+      deleteTask(taskId);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return (
+    <Container>
+      <h1>Task Tracker</h1>
+      <TaskForm onTaskAdded={handleAddTask} />
+      <TaskList tasks={tasks} onComplete={handleComplete} onDelete={handleDelete} />
+    </Container>
+  );
 }
 
 export default App;

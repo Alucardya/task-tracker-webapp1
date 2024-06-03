@@ -1,4 +1,3 @@
-/* src/App.css */
 .App {
   text-align: center;
 }
@@ -26,4 +25,27 @@ ul {
 li {
   padding: 10px;
   border-bottom: 1px solid #ddd;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-complete {
+  margin-right: 10px;
+}
+
+.task-text.completed {
+  text-decoration: line-through;
+  color: grey;
+}
+
+.task-delete {
+  margin-left: 10px;
+  background-color: red;
+  color: white;
+  border: none;
+  cursor: pointer;
 }

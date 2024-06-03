@@ -1,18 +1,40 @@
-from flask import Blueprint, request, jsonify
-from server.models import db, Task
+from flask import request, jsonify
+from server.models import db, Task  # Updated import path
 
-task_blueprint = Blueprint('tasks', __name__)
+def register_routes(app):
+    @app.route('/tasks', methods=['GET'])
+    def get_tasks():
+        tasks = Task.query.all()
+        tasks_list = [task.to_dict() for task in tasks]
+        return jsonify(tasks_list)
 
-@task_blueprint.route('/', methods=['GET'])
-def get_tasks():
-    tasks = Task.query.all()
-    tasks_list = [{'id': task.id, 'title': task.title, 'description': task.description, 'completed': task.completed} for task in tasks]
-    return jsonify(tasks_list)
+    @app.route('/tasks', methods=['POST'])
+    def add_task():
+        data = request.get_json()
+        new_task = Task(title=data['title'], description=data['description'])
+        db.session.add(new_task)
+        db.session.commit()
+        return jsonify(new_task.to_dict())
 
-@task_blueprint.route('/', methods=['POST'])
-def add_task():
-    data = request.get_json()
-    new_task = Task(title=data['title'], description=data['description'])
-    db.session.add(new_task)
-    db.session.commit()
-    return jsonify({'id': new_task.id, 'title': new_task.title, 'description': new_task.description, 'completed': new_task.completed})
+    @app.route('/tasks/<int:task_id>/', methods=['PUT'])
+    def update_task(task_id):
+        data = request.get_json()
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'error': 'Task not found'}), 404
+
+        if 'completed' in data:
+            task.completed = data['completed']
+        
+        db.session.commit()
+        return jsonify(task.to_dict())
+
+    @app.route('/tasks/<int:task_id>/', methods=['DELETE'])
+    def delete_task(task_id):
+        task = Task.query.get(task_id)
+        if not task:
+            return jsonify({'error': 'Task not found'}), 404
+        
+        db.session.delete(task)
+        db.session.commit()
+        return jsonify({'message': 'Task deleted'})
