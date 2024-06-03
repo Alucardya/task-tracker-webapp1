@@ -10,9 +10,10 @@ function App() {
         const getTasks = async () => {
             try {
                 const tasks = await fetchTasks();
-                setTasks(tasks);
+                setTasks(Array.isArray(tasks) ? tasks : []);
             } catch (error) {
                 console.log(error);
+                setTasks([]);
             }
         };
 
