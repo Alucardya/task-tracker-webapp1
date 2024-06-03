@@ -1,13 +1,18 @@
 import os
+import sqlite3
 from flask import Flask, send_from_directory
 from telegram import Update, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import logging
-import sqlite3
 import pytz
 
+# Logging configuration
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Flask application setup
 app = Flask(__name__, static_folder='task-tracker-client/build', static_url_path='')
 
 # Retrieve the Telegram bot token from environment variables
