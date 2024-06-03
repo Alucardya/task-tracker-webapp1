@@ -1,2 +1,3 @@
-web: npm start --prefix client
-worker: python bot.py
+web: python bot.py
+frontend: npm start --prefix client
+
