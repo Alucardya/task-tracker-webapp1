@@ -34,18 +34,28 @@ function App() {
     return (
         <div>
             <h1>Task Tracker</h1>
-            <input
-                type="text"
-                placeholder="Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-            />
-            <input
-                type="text"
-                placeholder="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-            />
+            <div>
+                <label htmlFor="task-title">Title</label>
+                <input
+                    type="text"
+                    id="task-title"
+                    name="title"
+                    placeholder="Title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                />
+            </div>
+            <div>
+                <label htmlFor="task-description">Description</label>
+                <input
+                    type="text"
+                    id="task-description"
+                    name="description"
+                    placeholder="Description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                />
+            </div>
             <button onClick={addTask}>Add Task</button>
             <ul>
                 {tasks.map((task, index) => (
