@@ -16,26 +16,31 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Настройка токена
-TOKEN = '6779858745:AAGBz3-5uSerXDXHYPVp1IgySy2yYJh3ueg'
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+if not TOKEN:
+    raise ValueError('`TELEGRAM_BOT_TOKEN` must be set as an environment variable')
 bot = Bot(token=TOKEN)
 
 # Функции для работы с базой данных SQLite
 def init_db():
-    conn = sqlite3.connect('task_tracker.db')
+    db_path = os.path.join(os.getcwd(), 'task_tracker.db')
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, task TEXT)''')
     conn.commit()
     conn.close()
 
 def add_task(task):
-    conn = sqlite3.connect('task_tracker.db')
+    db_path = os.path.join(os.getcwd(), 'task_tracker.db')
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("INSERT INTO tasks (task) VALUES (?)", (task,))
     conn.commit()
     conn.close()
 
 def get_tasks():
-    conn = sqlite3.connect('task_tracker.db')
+    db_path = os.path.join(os.getcwd(), 'task_tracker.db')
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("SELECT * FROM tasks")
     tasks = c.fetchall()
@@ -43,7 +48,8 @@ def get_tasks():
     return tasks
 
 def delete_task(task_id):
-    conn = sqlite3.connect('task_tracker.db')
+    db_path = os.path.join(os.getcwd(), 'task_tracker.db')
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
     conn.commit()
