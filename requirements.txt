@@ -2,3 +2,6 @@ Flask==2.1.2
 python-telegram-bot==13.7
 APScheduler==3.6.3
 pytz
+Flask-SQLAlchemy==2.5.1
+Flask-Cors==3.0.10
+Flask-SQLAlchemy==2.5.1
